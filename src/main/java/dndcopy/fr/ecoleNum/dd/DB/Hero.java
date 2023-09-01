@@ -12,14 +12,10 @@ import dndcopy.fr.ecoleNum.dd.character.Character;
 
 public class Hero {
 
-    /**
-     *
-     * @return
-     */
     public List<Character> getHeroes() {
         ArrayList<Character> characters = new ArrayList<>();
-        Statement statement = null;
-        ResultSet result = null;
+        Statement statement;
+        ResultSet result;
 
         Connection connection = DBConnection.getInstance();
 
@@ -35,10 +31,9 @@ public class Hero {
                 String name = result.getString("NAME");
                 int lifeLevel = result.getInt("LIFELEVEL");
                 int attackStrength = result.getInt("ATTACKSTRENGTH");
-
                 try
                 {
-                  Class characterType = Class.forName("dndcopy.fr.ecoleNum.dd.character."+characterClass);
+                  Class<?> characterType = Class.forName("dndcopy.fr.ecoleNum.dd.character."+characterClass);
 
                   Character character = (Character) characterType.getDeclaredConstructor().newInstance();
 
@@ -60,7 +55,7 @@ public class Hero {
                     throw new RuntimeException(e);
                 }
             }
-        } catch (SQLException e) {
+        } catch (SQLException ignored) {
         }
 
         return characters;

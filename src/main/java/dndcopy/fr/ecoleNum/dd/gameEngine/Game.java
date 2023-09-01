@@ -1,9 +1,9 @@
 package dndcopy.fr.ecoleNum.dd.gameEngine;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 
 import dndcopy.fr.ecoleNum.dd.DB.Env;
 import dndcopy.fr.ecoleNum.dd.character.Character;
@@ -46,12 +46,11 @@ public class Game {
         gameInProgress = false;
         Properties config = Config.getConfig();
         String diceConfig = config.getProperty("dice");
-        Class diceType = null;
+        Class<?> diceType;
         try {
             diceType = Class.forName("dndcopy.fr.ecoleNum.dd.gameComponents.dice."+diceConfig);
             dice = (Dice) diceType.getDeclaredConstructor().newInstance();
-        } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException |
-                 NoSuchMethodException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -68,31 +67,48 @@ public class Game {
      * cette méthode ajoute des objets cases dans la liste qui correspond au plateau de jeu.
      */
     private void createBoard() {
-        for (int i=0; i <64; i++) {
-            if (i==45 || i==52 || i==56 || i== 62) {
-                boardGame.add(new Dragon());
-            } else if (i==10 || i==20 || i==25 || i== 32 || i==35 || i==36 || i== 37 || i==40 || i==44 || i== 47) {
-                boardGame.add(new Wizard());
-            } else if (i==3|| i==6 || i==9 || i==12 || i==15 || i==18 || i==21 || i==24 || i==27 || i==30) {
-                boardGame.add(new Goblin());
-            } else if (i==2|| i==5 || i==11 || i==22 || i==38) {
-                boardGame.add(new Mace());
-            } else if (i==19|| i==26 || i==42 || i==53) {
-                boardGame.add(new Sword());
-            } else if (i==1|| i==4 || i==8 || i==17 || i==23) {
-                boardGame.add(new ThunderBolt());
-            } else if (i==48|| i==49) {
-                boardGame.add(new FireBolt());
-            } else if (i==7|| i==13 || i==31 || i==33 || i==39 || i==43) {
-                boardGame.add(new ClassicPotion());
-            } else if (i==28|| i==41) {
-                boardGame.add(new BigPotion());
-            } else {
-                boardGame.add(new EmptyCase());
+
+        String[] caseNames = {"EmptyCase", "bonus.attackEquipment.Mace", "bonus.attackEquipment.Sword", "bonus.attackEquipment.ThunderBolt", "bonus.attackEquipment.FireBolt", "bonus.potions.BigPotion", "bonus.potions.ClassicPotion", "foe.Goblin", "foe.Wizard", "foe.Dragon"};
+        int[][] caseInfo = {{0, 0, 9, 0, 9, 19, 0, 0, 9, 19}, {15, 24, 38, 47, 56, 60, 70, 83, 95, 100}, {15, 5, 4, 5, 2, 2, 6, 10, 10, 4}};
+
+        for (int i=0; i <63; i++) {
+            boolean found = false;
+            int chosenCaseType = -1;
+
+            while (!found) {
+                chosenCaseType = -1;
+                int random = ThreadLocalRandom.current().nextInt(1, 101);
+
+
+                int index = 0;
+                while (index < caseNames.length && chosenCaseType == -1) {
+
+                    if (random <= caseInfo[1][index]) {
+                        chosenCaseType = index;
+                    }
+                    index++;
+                }
+
+                if (caseInfo[2][chosenCaseType] > 0 && i >= caseInfo[0][chosenCaseType]) {
+                    caseInfo[2][chosenCaseType]--;
+                    found = true;
+                }
             }
+
+            Case selectedCase;
+
+            try {
+                Class<?> className = Class.forName("dndcopy.fr.ecoleNum.dd.gameComponents.boardGame."+caseNames[chosenCaseType]);
+                selectedCase = (Case) className.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            boardGame.add(selectedCase);
         }
-        Collections.shuffle(boardGame);
-        boardGame.set(63, new GiantCockroach());
+
+        boardGame.add(new GiantCockroach());
+
     }
 
     /**
